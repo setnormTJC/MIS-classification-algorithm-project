@@ -20,11 +20,5 @@ export_df = df.copy()
 filename = "German_Credit_Data_1994.csv";
 export_df.to_csv(filename, index=False);
 
-print("asdf");
-
-print("asdf");
-
-
-print("asdf");
-
-print("asdf");
+#asdfasdfasdf
+#asdfasdfasdf
