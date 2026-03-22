@@ -5,8 +5,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
 #fetch data from the web
-# url = "TBC"
-df = pd.read_csv("Loan approval data.csv"); #replace with URL later
+url = "https://github.com/setnormTJC/MIS-classification-algorithm-project/raw/master/Loan%20approval%20data.csv" #note the %20 is for spaces
+df = pd.read_csv(url);
 
 # Force Pandas to show all columns
 pd.set_option('display.max_columns', None)
