@@ -2,90 +2,83 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
-def predict_loan(duration, amount, dti, age, credits, s):
-    user_df = pd.DataFrame([[duration, amount, dti, age, credits, s]], columns=factorsToTrack)
-    scaled_input = scaler.transform(user_df)
-
-    prediction = model.predict(scaled_input)[0]
-
-    # Get the probability of the chosen outcome
-    probs = model.predict_proba(scaled_input)[0]
-    confidence = probs[prediction] * 100
-
-    verdict = "Approved" if prediction == 1 else "Denied"
-    return f"{verdict} ({confidence:.1f}% confidence)"
-
-
-print('\n\n')
-
-#fetch data from the web
+# 1. SETUP & DATA LOADING
 url = "https://github.com/setnormTJC/MIS-classification-algorithm-project/raw/master/Loan_approval_data.csv" #note the RAW!
-#data = pd.read_csv("Loan_approval_data.csv");
 data = pd.read_csv(url)
 
 factorsToTrack = [
-    'Duration (months)',
-    'Loan amount',
-    'Debt-to-income ratio (percent)',
-    'Age',
-    'Number of credit lines',
-    'Credit Score'
+    'Duration (months)', 'Loan amount', 'Debt-to-income ratio (percent)',
+    'Age', 'Number of credit lines', 'Credit Score'
 ]
 
-influencingFactors = data[factorsToTrack]; #add remaining ones
-loanDecisions = data['Loan decision'];
+X = data[factorsToTrack]
+y = data['Loan decision'].map({'Denied': 0, 'Approved': 1})
 
-# convert human-readable labels (loan decisions) to integers for playing nicely with classification algorithm
-# let 0 = "Approved" and 1 = "Denied"
-loanDecisions = loanDecisions.map({'Denied': 0, 'Approved': 1})
+# 2. THE TRAIN-TEST SPLIT
+# 80% to train the "Robot", 20% to test it on people it hasn't met.
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# SCALE THE DATA
+# 3. SCALING (The "Scale Trap" fix)
 scaler = StandardScaler()
-scaledInfluencingFactors = scaler.fit_transform(influencingFactors)
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-#TRAIN THE LOGISTIC REGRESSION (Gradient Descent)
+# 4. TRAINING
 model = LogisticRegression(solver='liblinear')
-model.fit(scaledInfluencingFactors, loanDecisions);
+model.fit(X_train_scaled, y_train)
 
-weights = model.coef_[0];
+# 5. EVALUATION
+train_acc = model.score(X_train_scaled, y_train) * 100
+test_acc = model.score(X_test_scaled, y_test) * 100
 
-print(f"Model Accuracy on Real-World Data: {model.score(scaledInfluencingFactors, loanDecisions)*100:.2f}%")
+print(f"Training Accuracy: {train_acc:.2f}%")
+print(f"Test Accuracy (Unseen Data): {test_acc:.2f}%")
 
-plt.title('Relative importances for loan decision')
+# 6. VISUALIZATION (Weights & Confusion Matrix)
+weights = model.coef_[0]
+
+# Plot 1: Feature Importance
+plt.figure(figsize=(10, 5))
 plt.barh(factorsToTrack, weights, color='darkblue')
+plt.axvline(0, color='black', linewidth=0.8)
+plt.title("What Influences the Bank's Decision?")
 plt.tight_layout()
-plt.axvline(0, color='black', linewidth=0.8) # Add a vertical line at zero
-plt.savefig("Weighted_loan_approval_factors.png")
+plt.savefig("Weights.png")
 
+# Plot 2: Confusion Matrix
+cm = confusion_matrix(y_test, model.predict(X_test_scaled))
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Denied', 'Approved'])
+disp.plot(cmap='Blues')
+plt.title("Confusion Matrix (Test Results)")
+plt.savefig("Confusion_Matrix.png")
 plt.show()
 
 
-#part 2: Visualize the confusion matrix:
-predictions = model.predict(scaledInfluencingFactors)
-cm = confusion_matrix(loanDecisions, predictions)
+# 7. INTERACTIVE PREDICTION
+def predict_loan():
+    print("\n--- New Loan Application ---")
+    try:
+        d = float(input("1. Duration (months): "))
+        am = float(input("2. Loan Amount ($): "))
+        dti = float(input("3. DTI Ratio (e.g. 25): "))
+        age = float(input("4. Age: "))
+        cl = float(input("5. Number of credit lines you have open: "))
+        scr = float(input("6. Credit Score (300-850): "))
 
-display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Denied', 'Approved'])
-display.plot(cmap='Blues')
-plt.title('Loan approval confusion matrix')
+        # Create DF to match training features (avoids warnings)
+        user_df = pd.DataFrame([[d, am, dti, age, cl, scr]], columns=factorsToTrack)
+        user_scaled = scaler.transform(user_df)
 
-plt.savefig("Loan approval confusion matrix.png")
+        pred = model.predict(user_scaled)[0]
+        prob = model.predict_proba(user_scaled)[0][pred] * 100
 
-plt.show();
+        verdict = "APPROVED" if pred == 1 else "DENIED"
+        print(f"\nDecision: {verdict} ({prob:.1f}% confidence)")
+    except ValueError:
+        print("Invalid input. Please enter numbers only.")
 
 
-
-#part 3: predicting loan approval with some test data:
-d   = float(input("1. Loan Duration (months): "))
-a   = float(input("2. Loan Amount ($): "))
-dti = float(input("3. Debt-to-Income Ratio (e.g. 25): "))
-age = float(input("4. Applicant Age: "))
-c   = float(input("5. Number of Credit Lines: "))
-score   = float(input("6. Credit score: "))
-
-prediction = predict_loan(d, a, dti, age, c, score);
-
-print(f"Prediction: {prediction}")
-
-# predictedLoanDecision = predict_loan(12, 5000, 25, 30, 2, 650) #example inputs
+predict_loan()
