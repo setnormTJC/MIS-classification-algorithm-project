@@ -21,8 +21,9 @@ def predict_loan(duration, amount, dti, age, credits, s):
 print('\n\n')
 
 #fetch data from the web
-# url = "https://github.com/setnormTJC/MIS-classification-algorithm-project/raw/master/Loan_approval_data.csv" #note the RAW!
-data = pd.read_csv("Loan_approval_data.csv");
+url = "https://github.com/setnormTJC/MIS-classification-algorithm-project/raw/master/Loan_approval_data.csv" #note the RAW!
+#data = pd.read_csv("Loan_approval_data.csv");
+data = pd.read_csv(url)
 
 factorsToTrack = [
     'Duration (months)',
